@@ -13,13 +13,47 @@
     />
 
     <form @submit.prevent>
-      <div v-for="control in form" :key="control.id" :class="$style.control">
+      <div v-for="control in formControls" :key="control.id" :class="$style.control">
         <checkbox-block
           v-if="control.type === 'checkbox'"
           v-bind="control"
           :model-value="!!generatedForm[control.id]"
           @update:model-value="onUpdate(control.id, $event)"
         />
+
+        <div v-else-if="control.type === 'select'" :class="$style.field">
+          <label :for="control.id" :class="$style.label">
+            {{ control.placeholder }}
+          </label>
+
+          <select
+            :id="control.id"
+            :class="$style.select"
+            :value="String(generatedForm[control.id] ?? '')"
+            @change="onSelectChange(control.id, $event)"
+          >
+            <option
+              v-for="option in getSubmitFormOptions(control)"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
+
+        <div v-else-if="control.type === 'radio'" :class="$style.field">
+          <p :class="$style.label">{{ control.placeholder }}</p>
+
+          <checkbox-block
+            v-for="option in getSubmitFormOptions(control)"
+            :key="option.value"
+            :id="`${control.id}_${option.value}`"
+            :placeholder="option.label"
+            :model-value="generatedForm[control.id] === option.value"
+            @update:model-value="onRadioSelect(control.id, option.value, $event)"
+          />
+        </div>
 
         <input-text
           v-else-if="control.type === 'number'"
@@ -42,7 +76,6 @@
 </template>
 
 <script setup lang="ts">
-import type { _GenerationFormControlConfig } from '@tok/generation/defineConfig';
 import { PrimitiveSlide } from '@tok/generation/components/PrimitiveSlide';
 import {
   FormPresetDefaultProps,
@@ -57,12 +90,21 @@ import { InputText } from '@tok/ui/components/InputText';
 import { useAlerts } from '@tok/ui/use/alerts';
 import { computed, inject, onBeforeUnmount, reactive, toRefs } from 'vue';
 
+import { hasBookingApiUrl, submitBookingRequest } from './submitBookingRequest';
+import {
+  getSubmitFormInitialValue,
+  getSubmitFormOptions,
+  SubmitFormControl,
+} from './submitForm.types';
+
 const props = withDefaults(
   defineProps<FormPresetProps>(),
   FormPresetDefaultProps
 );
 
 const { title, description, form, pagination } = toRefs(props);
+
+const formControls = computed(() => form.value as SubmitFormControl[]);
 
 const i18n = useI18n();
 const sdk = useTelegramSdk();
@@ -83,17 +125,12 @@ const slideCount = computed(() => {
 
 const stateValue = formState?.state;
 
-const getInitValue = (control: _GenerationFormControlConfig) => {
-  if (control.type === 'checkbox') {
-    return stateValue?.value[control.id] ?? false;
-  }
-
-  return stateValue?.value[control.id] ?? null;
-};
-
-const reactiveValue = form.value.reduce(
+const reactiveValue = formControls.value.reduce(
   (acc, control) => {
-    acc[control.id] = getInitValue(control);
+    acc[control.id] = getSubmitFormInitialValue(
+      control,
+      stateValue?.value[control.id]
+    );
 
     return acc;
   },
@@ -110,28 +147,53 @@ const onUpdate = (id: string, value: unknown) => {
   formState?.update({ [id]: value });
 };
 
+const onSelectChange = (id: string, event: Event) => {
+  const target = event.target as HTMLSelectElement;
+
+  onUpdate(id, target.value);
+};
+
+const onRadioSelect = (id: string, value: string, checked: boolean) => {
+  if (checked) {
+    onUpdate(id, value);
+  }
+};
+
 let alertTimeout: ReturnType<typeof setTimeout> | undefined;
 
-const onSubmit = () => {
-  const payload = formState ? { ...formState.state.value } : { ...generatedForm };
+const onSubmit = async () => {
+  const payload = formState
+    ? { ...formState.state.value }
+    : { ...generatedForm };
 
-  const data = JSON.stringify({
-    payload,
-    product: null,
-  });
+  try {
+    const result = await submitBookingRequest(sdk, payload);
 
-  sdk.sendData(data);
+    if (result === 'failed') {
+      alertsService.show('Не удалось отправить заявку. Попробуйте ещё раз.', {
+        type: 'error',
+      });
 
-  alertTimeout = setTimeout(() => {
-    alertsService.show(
-      'Метод sendData доступен только при запуске Mini App через кнопку клавиатуры бота',
-      {
-        type: 'telegram',
-      }
-    );
-  }, 500);
+      return;
+    }
 
-  sdk.close();
+    if (result === 'sendData' && !hasBookingApiUrl()) {
+      alertTimeout = setTimeout(() => {
+        alertsService.show(
+          'Метод sendData доступен только при запуске Mini App через кнопку клавиатуры бота',
+          {
+            type: 'telegram',
+          }
+        );
+      }, 500);
+    }
+
+    sdk.close();
+  } catch {
+    alertsService.show('Ошибка сети при отправке заявки', {
+      type: 'error',
+    });
+  }
 };
 
 onBeforeUnmount(() => {
@@ -157,5 +219,31 @@ onBeforeUnmount(() => {
 
 .control:not(:first-child) {
   margin-top: 1.25rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.label {
+  font: var(--tok-font-m);
+  color: var(--tok-text-color);
+}
+
+.select {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--tok-border-color, rgba(0, 0, 0, 0.12));
+  border-radius: 0.75rem;
+  background: var(--tok-background-color);
+  color: var(--tok-text-color);
+  font: var(--tok-font-m);
+  outline: none;
+
+  &:focus {
+    border-color: var(--tok-primary);
+  }
 }
 </style>

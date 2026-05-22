@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from telegram import (
+    Bot,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     KeyboardButton,
@@ -104,13 +105,30 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 def format_booking_request(payload: Dict[str, Any]) -> str:
     """Format onboarding form payload into a readable booking request message"""
+    car_class_labels = {
+        "any": "Любой класс",
+        "economy": "Эконом",
+        "standard": "Стандарт",
+        "business": "Бизнес",
+        "premium": "Премиум",
+        "suv": "SUV / Внедорожники",
+        "convertible": "Кабриолеты",
+    }
+    transmission_labels = {
+        "any": "Любая",
+        "manual": "Ручная",
+    }
+
     field_labels = {
         "pickup_location": "📍 Место получения",
         "rental_dates": "📅 Даты аренды",
-        "car_economy": "Эконом / компакт",
-        "car_suv": "SUV / внедорожник",
-        "car_premium": "Премиум / кабриолет",
-        "car_minivan": "Минивэн / семейный",
+        "car_class": "🚗 Класс автомобиля",
+        "transmission": "⚙️ Коробка передач",
+    }
+
+    value_labels = {
+        "car_class": car_class_labels,
+        "transmission": transmission_labels,
     }
 
     lines = ["🚗 <b>Новая заявка на аренду авто</b>", ""]
@@ -121,15 +139,27 @@ def format_booking_request(payload: Dict[str, Any]) -> str:
         if value in (None, "", False):
             continue
 
-        if isinstance(value, bool):
-            lines.append(f"✅ {label}")
-        else:
-            lines.append(f"{label}: <b>{value}</b>")
+        mapped_labels = value_labels.get(field_id)
+        display_value = mapped_labels.get(value, value) if mapped_labels else value
+
+        lines.append(f"{label}: <b>{display_value}</b>")
 
     if len(lines) == 2:
         lines.append("Пользователь отправил пустую заявку.")
 
     return "\n".join(lines)
+
+
+async def deliver_booking_request(
+    bot: Bot, chat_id: int, payload: Dict[str, Any]
+) -> None:
+    text = format_booking_request(payload)
+
+    await bot.send_message(
+        chat_id=chat_id,
+        text=text,
+        parse_mode=ParseMode.HTML,
+    )
 
 
 async def get_data_from_mini_app(
@@ -144,14 +174,19 @@ async def get_data_from_mini_app(
         if product:
             payload_str = json.dumps(payload, indent=4)
             text = f"📦 Got data from onboarding:\n" f"{payload_str}"
+
+            await update.effective_message.reply_text(
+                text=text,
+                reply_markup=ReplyKeyboardRemove(),
+            )
         else:
             text = format_booking_request(payload)
 
-        await update.effective_message.reply_text(
-            text=text,
-            reply_markup=ReplyKeyboardRemove(),
-            parse_mode=ParseMode.HTML,
-        )
+            await update.effective_message.reply_text(
+                text=text,
+                reply_markup=ReplyKeyboardRemove(),
+                parse_mode=ParseMode.HTML,
+            )
 
     if product:
         await send_invoice(update, context, product)
@@ -373,12 +408,22 @@ def run_bot(
     telegram_payments_token: Optional[str] = None,
     wallet_pay_token: Optional[str] = None,
 ) -> None:
+    from booking_api import start_booking_api, stop_booking_api
+
+    async def post_init(application) -> None:
+        await start_booking_api(application, deliver_booking_request)
+
+    async def post_shutdown(application) -> None:
+        await stop_booking_api(application)
+
     application = (
         ApplicationBuilder()
         .token(bot_token)
         .concurrent_updates(True)
         .http_version("1.1")
         .get_updates_http_version("1.1")
+        .post_init(post_init)
+        .post_shutdown(post_shutdown)
         .build()
     )
 

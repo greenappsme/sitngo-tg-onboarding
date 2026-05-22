@@ -1,0 +1,15 @@
+[Unit]
+Description=Sitngo Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/webapps/tg-onboarding-bot/sitngo-tg-onboarding/bot
+EnvironmentFile=/webapps/tg-onboarding-bot/sitngo-tg-onboarding/bot/.env
+ExecStart=/webapps/tg-onboarding-bot/sitngo-tg-onboarding/bot/venv/bin/python3 bot.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

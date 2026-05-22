@@ -36,6 +36,8 @@ jobs:
         run: npm ci
       - name: Build
         # Pass repository name as Vite "base" for GitHub Pages project sites (/repo-name/)
+        env:
+          VITE_BOOKING_API_URL: ${{ vars.VITE_BOOKING_API_URL }}
         run: npm run build -- -- --base /${{ github.event.repository.name }}
       - name: Create 404.html
         run: cp ./app/dist/index.html ./app/dist/404.html
