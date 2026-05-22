@@ -12,7 +12,7 @@
       :class="$style.description"
     />
 
-    <form @submit.prevent>
+    <form :class="$style.form" @submit.prevent>
       <div v-for="control in formControls" :key="control.id" :class="$style.control">
         <checkbox-block
           v-if="control.type === 'checkbox'"
@@ -56,18 +56,51 @@
         </div>
 
         <div v-else-if="control.type === 'date'" :class="$style.field">
-          <label :for="control.id" :class="$style.label">
-            {{ control.placeholder }}
-          </label>
+          <p :class="$style.label">{{ control.placeholder }}</p>
 
-          <input
-            :id="control.id"
-            type="date"
-            :class="$style.dateInput"
-            :value="String(generatedForm[control.id] ?? '')"
-            :min="getDateMin(control.id)"
-            @change="onDateChange(control.id, $event)"
-          />
+          <div :class="$style.dateRow">
+            <select
+              :class="$style.datePart"
+              :value="getDatePart(control.id, 'day')"
+              @change="onDatePartChange(control.id, 'day', $event)"
+            >
+              <option
+                v-for="option in getDayOptionsForField(control.id)"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+
+            <select
+              :class="$style.datePart"
+              :value="getDatePart(control.id, 'month')"
+              @change="onDatePartChange(control.id, 'month', $event)"
+            >
+              <option
+                v-for="option in MONTH_OPTIONS"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+
+            <select
+              :class="$style.datePart"
+              :value="getDatePart(control.id, 'year')"
+              @change="onDatePartChange(control.id, 'year', $event)"
+            >
+              <option
+                v-for="option in yearOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
         </div>
 
         <input-text
@@ -107,8 +140,19 @@ import { computed, inject, onBeforeUnmount, reactive, toRefs } from 'vue';
 
 import { hasBookingApiUrl, submitBookingRequest } from './submitBookingRequest';
 import {
+  addDaysToIsoDate,
+  buildIsoDate,
+  DEFAULT_RENTAL_DURATION_DAYS,
+  getDayOptions,
   getSubmitFormInitialValue,
   getSubmitFormOptions,
+  getYearOptions,
+  isDateBefore,
+  MONTH_OPTIONS,
+  normalizeDateParts,
+  parseIsoDate,
+  RENTAL_END_DATE_ID,
+  RENTAL_START_DATE_ID,
   SubmitFormControl,
 } from './submitForm.types';
 
@@ -120,6 +164,7 @@ const props = withDefaults(
 const { title, description, form, pagination } = toRefs(props);
 
 const formControls = computed(() => form.value as SubmitFormControl[]);
+const yearOptions = getYearOptions();
 
 const i18n = useI18n();
 const sdk = useTelegramSdk();
@@ -174,24 +219,47 @@ const onRadioSelect = (id: string, value: string, checked: boolean) => {
   }
 };
 
-const today = new Date().toISOString().slice(0, 10);
+const getDatePart = (fieldId: string, part: 'day' | 'month' | 'year') => {
+  const isoDate = String(generatedForm[fieldId] ?? '');
 
-const getDateMin = (fieldId: string) => {
-  if (fieldId === 'rental_end_date') {
-    const startDate = generatedForm.rental_start_date;
-
-    if (typeof startDate === 'string' && startDate) {
-      return startDate;
-    }
-  }
-
-  return today;
+  return parseIsoDate(isoDate)[part];
 };
 
-const onDateChange = (id: string, event: Event) => {
-  const target = event.target as HTMLInputElement;
+const getDayOptionsForField = (fieldId: string) => {
+  const { year, month } = parseIsoDate(String(generatedForm[fieldId] ?? ''));
 
-  onUpdate(id, target.value);
+  return getDayOptions(year, month);
+};
+
+const syncEndDateAfterStartChange = (startDate: string) => {
+  const endDate = String(generatedForm[RENTAL_END_DATE_ID] ?? '');
+
+  if (!endDate || isDateBefore(endDate, startDate)) {
+    onUpdate(
+      RENTAL_END_DATE_ID,
+      addDaysToIsoDate(startDate, DEFAULT_RENTAL_DURATION_DAYS)
+    );
+  }
+};
+
+const onDatePartChange = (
+  fieldId: string,
+  part: 'day' | 'month' | 'year',
+  event: Event
+) => {
+  const target = event.target as HTMLSelectElement;
+  const currentParts = parseIsoDate(String(generatedForm[fieldId] ?? ''));
+  const nextParts = normalizeDateParts({
+    ...currentParts,
+    [part]: target.value,
+  });
+  const nextDate = buildIsoDate(nextParts);
+
+  onUpdate(fieldId, nextDate);
+
+  if (fieldId === RENTAL_START_DATE_ID) {
+    syncEndDateAfterStartChange(nextDate);
+  }
 };
 
 let alertTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -252,14 +320,29 @@ onBeforeUnmount(() => {
   color: var(--tok-text-color-64);
 }
 
-.control:not(:first-child) {
-  margin-top: 1.25rem;
+.form {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.control {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  &:not(:first-child) {
+    margin-top: 1.25rem;
+  }
 }
 
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .label {
@@ -267,9 +350,13 @@ onBeforeUnmount(() => {
   color: var(--tok-text-color);
 }
 
-.select {
+.select,
+.datePart {
   width: 100%;
-  padding: 0.875rem 1rem;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0.875rem 0.75rem;
   border: 1px solid var(--tok-border-color, rgba(0, 0, 0, 0.12));
   border-radius: 0.75rem;
   background: var(--tok-background-color);
@@ -282,18 +369,12 @@ onBeforeUnmount(() => {
   }
 }
 
-.dateInput {
+.dateRow {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) minmax(0, 0.9fr);
+  gap: 0.5rem;
   width: 100%;
-  padding: 0.875rem 1rem;
-  border: 1px solid var(--tok-border-color, rgba(0, 0, 0, 0.12));
-  border-radius: 0.75rem;
-  background: var(--tok-background-color);
-  color: var(--tok-text-color);
-  font: var(--tok-font-m);
-  outline: none;
-
-  &:focus {
-    border-color: var(--tok-primary);
-  }
+  max-width: 100%;
+  min-width: 0;
 }
 </style>
