@@ -1,259 +1,199 @@
 import { defineConfig } from '@tok/generation';
 
 export default defineConfig({
-  // If you want to add language/currency localization – see ./examples/meditation as reference
+  theme: 'light',
 
   pages: [
     {
       slides: [
-        // intro
         {
           media: {
-            type: 'sticker',
-            src: import('./assets/stickers/duck_hello.tgs'),
-            size: 250,
+            type: 'emodji',
+            src: '🚗',
+            size: 120,
           },
           shape: 'square',
           pagination: 'count',
-          title: 'Welcome to Telegram Onboarding Kit',
+          textAlign: 'center',
+          title: 'Сел и Поехал',
           description:
-            "Create stunning onboarding and paywall for your Telegram Bot using the full power of Mini Apps<br><br>It's <b>simple</b>, <b>fast</b>, highly <b>customizable</b> and <a href='https://github.com/Easterok/telegram-onboarding-kit' target='_blank'>open-source</a>!",
-          button: 'Next',
+            'Аренда автомобилей в <b>Черногории</b> с 2010 года.<br><br>Более <b>200</b> современных авто — от эконом до премиум. Офисы в <b>Будве</b>, <b>Тивате</b> и <b>Подгорице</b>.<br><br>Просто сели — и поехали исследовать страну!',
+          button: 'Далее',
         },
 
-        // image
         {
           media: {
-            type: 'image',
-            src: import('./assets/img/durov.webp'),
-          },
-          shape: 'rounded',
-          pagination: 'count',
-          title: 'Onboarding supports many types of content',
-          description:
-            "Here you can see <b>Image</b>. But it's just the beginning...",
-          button: 'Next',
-        },
-
-        // sticker
-        {
-          media: {
-            type: 'sticker',
-            src: import('./assets/stickers/duck_love.tgs'),
-            size: 250,
+            type: 'emodji',
+            src: '⭐',
+            size: 100,
           },
           shape: 'square',
           pagination: 'count',
-          title: 'Telegram stickers',
-          description:
-            'Just download any <b>.tgs</b> sticker from Telegram and use it in your onboardings',
-          button: 'Next',
+          title: 'Почему выбирают нас',
+          description: '14 лет на рынке · рейтинг Google <b>5.0</b> · более <b>800</b> отзывов',
+          list: [
+            {
+              media: { type: 'emodji', src: '💳', size: 28 },
+              text: '<b>Без залога</b> — не блокируем депозит на карте',
+            },
+            {
+              media: { type: 'emodji', src: '✈️', size: 28 },
+              text: '<b>Встреча в аэропорту</b> с табличкой за 15 минут',
+            },
+            {
+              media: { type: 'emodji', src: '💰', size: 28 },
+              text: '<b>Без предоплаты</b> — бронируйте заранее онлайн',
+            },
+            {
+              media: { type: 'emodji', src: '🗣️', size: 28 },
+              text: '<b>Русскоязычные менеджеры</b> на всех этапах',
+            },
+          ],
+          button: 'Далее',
         },
 
-        // form
         {
-          extends: 'form', // note, it's important to extend from 'form' here
           media: {
-            type: 'sticker',
-            src: import('./assets/stickers/duck_spy.tgs'),
-            size: 150,
+            type: 'emodji',
+            src: '🏎️',
+            size: 100,
           },
           shape: 'square',
           pagination: 'count',
-          title: 'Forms',
-          description: 'User fills in the form – the bot receives the data',
+          title: 'Автопарк на любой запрос',
+          description: 'От <b>€25/день</b> — выберите класс под ваше путешествие',
+          list: [
+            {
+              media: { type: 'icon', src: import('./assets/icons/guide.svg'), size: 28 },
+              text: '<b>Эконом</b> — Toyota Yaris, Aygo, Suzuki Ignis',
+            },
+            {
+              media: { type: 'icon', src: import('./assets/icons/track.svg'), size: 28 },
+              text: '<b>Стандарт и SUV</b> — Corolla, Tucson, Vitara',
+            },
+            {
+              media: { type: 'icon', src: import('./assets/icons/star.svg'), size: 28 },
+              text: '<b>Бизнес и премиум</b> — BMW X5, Audi Q5, Mercedes',
+            },
+            {
+              media: { type: 'icon', src: import('./assets/icons/time.svg'), size: 28 },
+              text: '<b>Кабриолеты и минивэны</b> — Mustang, T6, Sharan',
+            },
+          ],
+          button: 'Далее',
+        },
+
+        {
+          extends: 'form',
+          media: {
+            type: 'emodji',
+            src: '📋',
+            size: 100,
+          },
+          shape: 'square',
+          pagination: 'count',
+          title: 'Расскажите о поездке',
+          description:
+            'Заполните форму — бот передаст данные менеджеру для подбора авто',
           form: [
             {
-              id: 'text_from_form',
-              placeholder: 'Text input',
+              id: 'pickup_location',
+              placeholder: 'Где получить авто (аэропорт, город)',
               type: 'text',
             },
             {
-              id: 'number_from_form',
-              placeholder: 'Number input',
-              type: 'number',
+              id: 'rental_dates',
+              placeholder: 'Даты аренды (например, 1–10 июня)',
+              type: 'text',
             },
             {
-              id: 'checkbox_from_form',
-              placeholder: 'Checkbox',
+              id: 'car_economy',
+              placeholder: 'Эконом / компакт',
+              type: 'checkbox',
+            },
+            {
+              id: 'car_suv',
+              placeholder: 'SUV / внедорожник',
+              type: 'checkbox',
+            },
+            {
+              id: 'car_premium',
+              placeholder: 'Премиум / кабриолет',
+              type: 'checkbox',
+            },
+            {
+              id: 'car_minivan',
+              placeholder: 'Минивэн / семейный',
               type: 'checkbox',
             },
           ],
-          button: 'Next',
+          button: 'Далее',
         },
 
-        // video
         {
           media: {
-            type: 'video',
-            src: import('./assets/videos/spongebob.mp4'),
-            poster: import('./assets/img/spongebob_poster.webp'),
-            style: 'aspect-ratio: 400/287', // here we manually set video aspect-ratio (default is 16:9)
-          },
-          shape: 'rounded',
-          pagination: 'count',
-          title: 'Videos',
-          description:
-            "Typically, video starts <b>automatically</b><br><br>However, on iOS, it will only autoplay upon any prior tap on the page ('Next' button doesn't count). If video doesn't autoplay, user will see preview and pretty animation, inviting them to tap to play the video",
-          button: 'Next',
-        },
-
-        // list
-        {
-          media: {
-            type: 'sticker',
-            src: import('./assets/stickers/duck_juggling.tgs'),
-            size: 150,
+            type: 'emodji',
+            src: '🛡️',
+            size: 100,
           },
           shape: 'square',
           pagination: 'count',
-          title: 'Lists',
-          description:
-            'Lists can be used to showcase <b>features</b> of your product. Items support customizable icons',
+          title: 'Всё уже включено',
+          description: 'Никаких скрытых доплат за базовые услуги',
           list: [
             {
-              media: {
-                type: 'icon',
-                src: import('./assets/icons/guide.svg'),
-                size: 30,
-              },
-              text: 'Some cool feature',
+              media: { type: 'emodji', src: '📄', size: 28 },
+              text: '<b>ОСАГО</b> и <b>Грин-карта</b> для выезда за границу',
             },
             {
-              media: {
-                type: 'icon',
-                src: import('./assets/icons/track.svg'),
-                size: 30,
-              },
-              text: 'Some very cool feature',
+              media: { type: 'emodji', src: '👶', size: 28 },
+              text: '<b>Детское кресло</b> — одно бесплатно',
             },
             {
-              media: {
-                type: 'icon',
-                src: import('./assets/icons/time.svg'),
-                size: 30,
-              },
-              text: 'Some extremely cool feature',
+              media: { type: 'emodji', src: '👥', size: 28 },
+              text: '<b>Второй водитель</b> без дополнительной оплаты',
+            },
+            {
+              media: { type: 'emodji', src: '🛣️', size: 28 },
+              text: '<b>Без ограничения пробега</b> на весь срок аренды',
             },
           ],
-          button: 'Next',
+          button: 'Далее',
         },
 
-        // "everything is customizable" slide
         {
           media: {
-            type: 'sticker',
-            src: import('./assets/stickers/duck_xray.tgs'),
-            size: 250,
+            type: 'emodji',
+            src: '🗺️',
+            size: 100,
           },
           shape: 'square',
           pagination: 'count',
-          title: 'Everything is customizable',
-          description: '',
-          textAlign: 'center',
+          title: 'Как арендовать',
+          description: 'От заявки до дороги — быстро и без лишних формальностей',
           list: [
-            '<b>CSS styles</b>: extend primary colors from Telegram or set yours',
-            'Button text and actions (look down)',
-            'Use our carefully crafted <b>presets</b> or easily create your own',
+            'Выберите авто и даты на <a href="https://sitngo.me/" target="_blank">sitngo.me</a>',
+            'Менеджер подтвердит бронь <b>без предоплаты</b>',
+            'Встретим в аэропорту или <b>бесплатно доставим</b> авто',
+            'Осмотрите машину, подпишите договор и <b>оплатите</b> удобным способом',
+            'Получите инструктаж и отправляйтесь в путь!',
           ],
-          button: 'Super-Duper Next',
+          button: 'Далее',
         },
 
-        // slide with other features
         {
           media: {
-            type: 'sticker',
-            src: import('./assets/stickers/duck_cool.tgs'),
-            size: 150,
-          },
-          shape: 'square',
-          pagination: 'count',
-          title: 'Some other features:',
-          description: '',
-          list: [
-            'One-click 0$ <b>deploy</b> on GitHub Pages',
-            'Language and currency localization',
-            'Buttons with <b>haptic</b> feedback',
-            'Content pre-loading for high speed',
-            '<b>Low-code</b> approach to building onboardings',
-            'Many examples/presets',
-            "And many more... (see <a href='https://github.com/Easterok/telegram-onboarding-kit' target='_blank'>GitHub</a>)",
-          ],
-          button: 'Next',
-        },
-
-        // go to paywall slide
-        {
-          media: {
-            type: 'sticker',
-            src: import('./assets/stickers/duck_knife.tgs'),
-            size: 250,
+            type: 'emodji',
+            src: '🔑',
+            size: 120,
           },
           shape: 'square',
           pagination: 'count',
           textAlign: 'center',
-          title: 'But onboarding slides are not enough...',
-          description: "Let's go to Paywall",
-          button: {
-            content: 'Go to Paywall',
-            to: '/paywall',
-          },
-        },
-      ],
-    },
-
-    // paywall
-    {
-      extends: 'paywall',
-      path: '/paywall',
-      media: {
-        type: 'sticker',
-        src: import('./assets/stickers/duck_money.tgs'),
-        size: 150,
-      },
-      shape: 'square',
-      title: 'Your beautiful Paywall',
-      list: [
-        'Adjustable product cards',
-        '<b>👛 Wallet Pay</b> and <b>Telegram Payments</b> ready. Add custom methods easily',
-        'Subscriptions or One-time payments',
-      ],
-      products: [
-        {
-          id: '1_month_subscription',
-          title: '1 month subscription',
-          description: '2$/month',
-          discount: '',
-          price: 2,
-        },
-        {
-          id: '1_year_subscription',
-          title: '1 year subscription',
-          description: '1$/month',
-          discount: 'Discount 50%',
-          price: 12,
-        },
-        {
-          id: 'lifetime_access',
-          title: 'Lifetime access',
-          description: '20$ once',
-          discount: 'Best offer',
-          price: 20,
-        },
-      ],
-      mainButtonText: 'Buy for {price}',
-      popup: {
-        // popup for payment methods choice
-        type: 'web',
-      },
-      links: [
-        {
-          text: 'Privacy policy',
-          href: 'https://google.com',
-        },
-        {
-          text: 'Terms of use',
-          href: 'https://google.com',
+          title: 'Готовы в дорогу?',
+          description:
+            'Забронируйте автомобиль на <a href="https://sitngo.me/" target="_blank"><b>sitngo.me</b></a> — менеджер свяжется с вами в ближайшее время.<br><br>Нужна машина сегодня или завтра? Напишите нам в Telegram — подберём лучший вариант.<br><br>📞 <b>+382 69 31-32-33</b><br>✉️ <a href="mailto:info@sitngo.me">info@sitngo.me</a>',
+          button: 'Забронировать авто',
         },
       ],
     },
