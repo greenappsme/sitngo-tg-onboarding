@@ -17,6 +17,8 @@ from typing import Any, Dict, Optional, Tuple
 import httpx
 from dotenv import load_dotenv
 
+load_dotenv()
+
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -64,66 +66,29 @@ def remove_html_tags(text: str) -> str:
 
 # endregion: helper functions
 
+ONBOARDING_URL = os.getenv(
+    "ONBOARDING_URL",
+    "https://greenappsme.github.io/sitngo-tg-onboarding",
+)
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_data = get_user_data(update.effective_user)
 
     text = (
-        f"♥️ Hi! I'm demo bot for <a href='https://github.com/Easterok/telegram-onboarding-kit'>Telegram Onboarding Kit</a>\n"
-        f"\n"
-        f"Below you can see demo onboardings <b>created with our kit</b>. It's better to you watch them from 📱 mobile device\n"
-        f"\n"
-        f"Your language code: <b>{user_data['language_code']}</b>\n"
+        "🚗 <b>Сел и Поехал</b> — аренда авто в Черногории\n"
+        "\n"
+        "Нажмите кнопку ниже, чтобы пройти онбординг и оставить заявку на аренду.\n"
+        "\n"
+        "🌐 <a href='https://sitngo.me/'>sitngo.me</a>"
     )
-
-    user_data = get_user_data(update.effective_user)
 
     reply_markup = ReplyKeyboardMarkup.from_column(
         [
             KeyboardButton(
-                text="🌈 Base Onboarding",
+                text="🚗 Аренда авто",
                 web_app=WebAppInfo(
-                    url=add_get_params_to_url(
-                        "https://easterok.github.io/telegram-onboarding-kit", user_data
-                    )
-                ),
-            ),
-            KeyboardButton(
-                text="💃 Fashion AI Onboarding",
-                web_app=WebAppInfo(
-                    url=add_get_params_to_url("https://tok-ai.netlify.app", user_data)
-                ),
-            ),
-            KeyboardButton(
-                text="🧘 Meditation Onboarding",
-                web_app=WebAppInfo(
-                    url=add_get_params_to_url(
-                        "https://tok-meditation.netlify.app", user_data
-                    )
-                ),
-            ),
-            KeyboardButton(
-                text="🧚‍♂️ AI Tales Onboarding",
-                web_app=WebAppInfo(
-                    url=add_get_params_to_url(
-                        "https://tok-wondertales.netlify.app", user_data
-                    )
-                ),
-            ),
-            KeyboardButton(
-                text="🔐 VPN Onboarding",
-                web_app=WebAppInfo(
-                    url=add_get_params_to_url(
-                        "https://tok-vpn.netlify.app", user_data
-                    )
-                ),
-            ),
-            KeyboardButton(
-                text="🧠 ChatGPT Onboarding",
-                web_app=WebAppInfo(
-                    url=add_get_params_to_url(
-                        "https://tok-chatgpt.netlify.app", user_data
-                    )
+                    url=add_get_params_to_url(ONBOARDING_URL, user_data)
                 ),
             ),
         ]
@@ -137,25 +102,59 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
+def format_booking_request(payload: Dict[str, Any]) -> str:
+    """Format onboarding form payload into a readable booking request message"""
+    field_labels = {
+        "pickup_location": "📍 Место получения",
+        "rental_dates": "📅 Даты аренды",
+        "car_economy": "Эконом / компакт",
+        "car_suv": "SUV / внедорожник",
+        "car_premium": "Премиум / кабриолет",
+        "car_minivan": "Минивэн / семейный",
+    }
+
+    lines = ["🚗 <b>Новая заявка на аренду авто</b>", ""]
+
+    for field_id, label in field_labels.items():
+        value = payload.get(field_id)
+
+        if value in (None, "", False):
+            continue
+
+        if isinstance(value, bool):
+            lines.append(f"✅ {label}")
+        else:
+            lines.append(f"{label}: <b>{value}</b>")
+
+    if len(lines) == 2:
+        lines.append("Пользователь отправил пустую заявку.")
+
+    return "\n".join(lines)
+
+
 async def get_data_from_mini_app(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """This handler is called when user sends data from mini app"""
 
     data = json.loads(update.effective_message.web_app_data.data)
-    payload, product = data["payload"], data["product"]
+    payload, product = data.get("payload", {}), data.get("product")
 
-    # send received payload
     if payload:
-        payload_str = json.dumps(payload, indent=4)
-        text = f"📦 Got data from onboarding:\n" f"{payload_str}"
+        if product:
+            payload_str = json.dumps(payload, indent=4)
+            text = f"📦 Got data from onboarding:\n" f"{payload_str}"
+        else:
+            text = format_booking_request(payload)
 
         await update.effective_message.reply_text(
             text=text,
             reply_markup=ReplyKeyboardRemove(),
+            parse_mode=ParseMode.HTML,
         )
 
-    await send_invoice(update, context, product)
+    if product:
+        await send_invoice(update, context, product)
 
 
 async def send_invoice(
@@ -423,8 +422,6 @@ def run_bot(
 
 
 if __name__ == "__main__":
-    load_dotenv()  # load variables from .env file (don't forget to fill it!)
-
     bot_token = os.getenv("BOT_TOKEN")
     if not bot_token:
         raise ValueError("Invalid BOT_TOKEN in .env file")
