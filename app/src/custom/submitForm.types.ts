@@ -34,6 +34,10 @@ export function getSubmitFormInitialValue(
     return control.options?.[0]?.value ?? null;
   }
 
+  if (control.type === 'date') {
+    return '';
+  }
+
   return null;
 }
 

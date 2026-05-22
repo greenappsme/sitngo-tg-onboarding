@@ -55,6 +55,21 @@
           />
         </div>
 
+        <div v-else-if="control.type === 'date'" :class="$style.field">
+          <label :for="control.id" :class="$style.label">
+            {{ control.placeholder }}
+          </label>
+
+          <input
+            :id="control.id"
+            type="date"
+            :class="$style.dateInput"
+            :value="String(generatedForm[control.id] ?? '')"
+            :min="getDateMin(control.id)"
+            @change="onDateChange(control.id, $event)"
+          />
+        </div>
+
         <input-text
           v-else-if="control.type === 'number'"
           v-bind="control"
@@ -159,6 +174,26 @@ const onRadioSelect = (id: string, value: string, checked: boolean) => {
   }
 };
 
+const today = new Date().toISOString().slice(0, 10);
+
+const getDateMin = (fieldId: string) => {
+  if (fieldId === 'rental_end_date') {
+    const startDate = generatedForm.rental_start_date;
+
+    if (typeof startDate === 'string' && startDate) {
+      return startDate;
+    }
+  }
+
+  return today;
+};
+
+const onDateChange = (id: string, event: Event) => {
+  const target = event.target as HTMLInputElement;
+
+  onUpdate(id, target.value);
+};
+
 let alertTimeout: ReturnType<typeof setTimeout> | undefined;
 
 const onSubmit = async () => {
@@ -233,6 +268,21 @@ onBeforeUnmount(() => {
 }
 
 .select {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--tok-border-color, rgba(0, 0, 0, 0.12));
+  border-radius: 0.75rem;
+  background: var(--tok-background-color);
+  color: var(--tok-text-color);
+  font: var(--tok-font-m);
+  outline: none;
+
+  &:focus {
+    border-color: var(--tok-primary);
+  }
+}
+
+.dateInput {
   width: 100%;
   padding: 0.875rem 1rem;
   border: 1px solid var(--tok-border-color, rgba(0, 0, 0, 0.12));

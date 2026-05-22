@@ -13,6 +13,7 @@ import os
 import re
 import urllib.parse
 import uuid
+from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 import httpx
 from dotenv import load_dotenv
@@ -103,8 +104,39 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
+def format_display_date(value: Any) -> str:
+    if not isinstance(value, str) or not value:
+        return str(value)
+
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").strftime("%d.%m.%Y")
+    except ValueError:
+        return value
+
+
 def format_booking_request(payload: Dict[str, Any]) -> str:
     """Format onboarding form payload into a readable booking request message"""
+    pickup_location_labels = {
+        "TGD": "Аэропорт Подгорица",
+        "TIV": "Аэропорт Тиват",
+        "BR": "Бар",
+        "BE": "Бечичи",
+        "BD": "Будва",
+        "DJ": "Дженовичи",
+        "IG": "Игало",
+        "KO": "Котор",
+        "LE": "Лепетанье",
+        "PE": "Петровац",
+        "PG": "Подгорица",
+        "PR": "Пржно",
+        "RF": "Рафаиловичи",
+        "RI": "Рисан",
+        "SV": "Святой Стефан",
+        "ST": "Сутоморе",
+        "TV": "Тиват",
+        "UL": "Ульцинь",
+        "HN": "Херцег-Нови",
+    }
     car_class_labels = {
         "any": "Любой класс",
         "economy": "Эконом",
@@ -116,20 +148,24 @@ def format_booking_request(payload: Dict[str, Any]) -> str:
     }
     transmission_labels = {
         "any": "Любая",
+        "automatic": "Автомат",
         "manual": "Ручная",
     }
 
     field_labels = {
         "pickup_location": "📍 Место получения",
-        "rental_dates": "📅 Даты аренды",
+        "rental_start_date": "📅 Дата начала аренды",
+        "rental_end_date": "📅 Дата возврата",
         "car_class": "🚗 Класс автомобиля",
         "transmission": "⚙️ Коробка передач",
     }
 
     value_labels = {
+        "pickup_location": pickup_location_labels,
         "car_class": car_class_labels,
         "transmission": transmission_labels,
     }
+    date_fields = {"rental_start_date", "rental_end_date"}
 
     lines = ["🚗 <b>Новая заявка на аренду авто</b>", ""]
 
@@ -140,7 +176,10 @@ def format_booking_request(payload: Dict[str, Any]) -> str:
             continue
 
         mapped_labels = value_labels.get(field_id)
-        display_value = mapped_labels.get(value, value) if mapped_labels else value
+        if field_id in date_fields:
+            display_value = format_display_date(value)
+        else:
+            display_value = mapped_labels.get(value, value) if mapped_labels else value
 
         lines.append(f"{label}: <b>{display_value}</b>")
 
